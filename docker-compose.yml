@@ -9,7 +9,6 @@ services:
       - ./api:/mustachebash
       - /mustachebash/node_modules/uws
       - /mustachebash/node_modules/paul-revere
-      - /mustachebash/node_modules/bcrypt
     command: sh -c "cd /mustachebash && npm run debug"
     environment:
       - NODE_ENV=development
