@@ -15,6 +15,7 @@ services:
       - DB_HOST=rethinkdb
       - DB_PORT=28015
       - JWT_SECRET=fr344moiioa94kla3rnjl8cnjlsa
+      - DONATION_ID=11c2f51e-407d-45be-b8a0-8247ac2f9cd3
       - MAILGUN_DOMAIN
       - MAILGUN_API_KEY
       - BRAINTREE_MERCHANT_ID
