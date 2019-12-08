@@ -7,17 +7,18 @@ services:
     tty: true
     volumes:
       - ./api:/mustachebash
-      - /mustachebash/node_modules/uws
-      - /mustachebash/node_modules/paul-revere
     command: sh -c "cd /mustachebash && npm run debug"
     environment:
       - NODE_ENV=development
       - DB_HOST=rethinkdb
       - DB_PORT=28015
       - JWT_SECRET=fr344moiioa94kla3rnjl8cnjlsa
+      - JWT_TICKET_SECRET=5e3ed05df78e69fe6acc2004fffa759e915b6ad9b379e506
       - DONATION_ID=11c2f51e-407d-45be-b8a0-8247ac2f9cd3
       - MAILGUN_DOMAIN
       - MAILGUN_API_KEY
+      - MAILCHIMP_DOMAIN
+      - MAILCHIMP_API_KEY
       - BRAINTREE_MERCHANT_ID
       - BRAINTREE_PUBLIC_KEY
       - BRAINTREE_PRIVATE_KEY
@@ -25,7 +26,7 @@ services:
       - "9229:9229"
 
   nginx:
-    image: nginx:1.13.7-alpine
+    image: nginx:1.17.5-alpine
     ports:
       - "4000:80"
       - "5000:8080"
