@@ -13,6 +13,7 @@ services:
       - DB_HOST=rethinkdb
       - DB_PORT=28015
       - JWT_SECRET=fr344moiioa94kla3rnjl8cnjlsa
+      - JWT_TRANSACTION_SECRET=8f14902ffe5f09996178e9630c58915c99aedf9a6c354a8a
       - JWT_TICKET_SECRET=5e3ed05df78e69fe6acc2004fffa759e915b6ad9b379e506
       - DONATION_ID=11c2f51e-407d-45be-b8a0-8247ac2f9cd3
       - MAILGUN_DOMAIN
@@ -39,5 +40,6 @@ services:
     image: rethinkdb:2.3.6
     ports:
       - "8080:8080"
+      - "28015:28015"
     volumes:
       - ./data:/data
