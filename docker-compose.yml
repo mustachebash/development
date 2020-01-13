@@ -7,6 +7,7 @@ services:
     tty: true
     volumes:
       - ./api:/mustachebash
+      - ./logs:/mustachebash/logs
     command: sh -c "cd /mustachebash && npm run debug"
     environment:
       - NODE_ENV=development
