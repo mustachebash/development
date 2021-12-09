@@ -1,4 +1,4 @@
-version: '3'
+version: '3.7'
 
 services:
   api:
@@ -6,8 +6,9 @@ services:
     image: mustachebash:local
     tty: true
     volumes:
-      - ./api:/mustachebash
-      - ./logs:/mustachebash/logs
+      - type: bind
+        source: ./api
+        target: /mustachebash
     command: sh -c "cd /mustachebash && npm run debug"
     environment:
       - NODE_ENV=development
@@ -27,7 +28,7 @@ services:
       - "9229:9229"
 
   nginx:
-    image: nginx:1.17.5-alpine
+    image: nginx:1.21.3-alpine
     ports:
       - "4000:80"
       - "5000:8080"
@@ -37,7 +38,7 @@ services:
       - ./server.key:/etc/nginx/certs/server.key
       - ./server.crt:/etc/nginx/certs/server.crt
   rethinkdb:
-    image: rethinkdb:2.3.6
+    image: rethinkdb:2.4.1
     ports:
       - "8080:8080"
       - "28015:28015"
