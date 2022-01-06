@@ -1,15 +1,42 @@
 version: '3.7'
 
+volumes:
+    node_modules:
+
 services:
+  installer:
+    image: node:16.11-alpine
+    working_dir: /mustachebash
+    command: npm i
+    environment:
+        NODE_ENV: development
+    volumes:
+        - type: bind
+          source: ./api
+          target: /mustachebash
+        - type: volume
+          source: node_modules
+          target: /mustachebash/node_modules
   api:
-    build: api/.
-    image: mustachebash:local
+    depends_on:
+      - installer
+      - nginx
+      - rethinkdb
+    image: node:16.11-alpine
+    working_dir: /mustachebash
     tty: true
     volumes:
       - type: bind
         source: ./api
         target: /mustachebash
-    command: sh -c "cd /mustachebash && npm run debug"
+      - type: bind
+        read_only: true
+        source: ./await.sh
+        target: /etc/await.sh
+      - type: volume
+        source: node_modules
+        target: /mustachebash/node_modules
+    command: sh -c "/etc/await.sh node_modules/.bin/nodemon npm run debug"
     environment:
       - NODE_ENV=development
       - DB_HOST=rethinkdb
@@ -30,7 +57,6 @@ services:
   nginx:
     image: nginx:1.21.3-alpine
     ports:
-      - "4000:80"
       - "5000:8080"
     volumes:
       - ./nginx-dev.conf:/etc/nginx/conf.d/default.conf
