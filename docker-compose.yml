@@ -5,7 +5,7 @@ volumes:
 
 services:
   installer:
-    image: node:16.11-alpine
+    image: node:18.10-alpine
     working_dir: /mustachebash
     command: npm i
     environment:
@@ -22,7 +22,7 @@ services:
       - installer
       - nginx
       - rethinkdb
-    image: node:16.11-alpine
+    image: node:18.10-alpine
     working_dir: /mustachebash
     tty: true
     volumes:
@@ -55,7 +55,7 @@ services:
       - "9229:9229"
 
   nginx:
-    image: nginx:1.21.3-alpine
+    image: nginx:1.23.3-alpine
     ports:
       - "5000:8080"
     volumes:
@@ -64,7 +64,7 @@ services:
       - ./server.key:/etc/nginx/certs/server.key
       - ./server.crt:/etc/nginx/certs/server.crt
   rethinkdb:
-    image: rethinkdb:2.4.1
+    image: rethinkdb:2.4.2
     ports:
       - "8080:8080"
       - "28015:28015"

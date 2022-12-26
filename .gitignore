@@ -1,7 +1,10 @@
 /data
 server.crt
 server.key
+server.csr
 rootCA.pem
+rootCA.key
+rootCA.srl
 
 # OS generated files #
 ######################
