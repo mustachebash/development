@@ -1,4 +1,5 @@
 /data
+/postgres-data/pgdata
 server.crt
 server.key
 server.csr

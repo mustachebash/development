@@ -1,46 +1,75 @@
 version: '3.7'
 
 volumes:
-    node_modules:
+    api_init:
+    api_node_modules:
 
 services:
-  installer:
+  postgres:
+    image: postgres:13.1-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - type: bind
+        source: ./postgres-data
+        target: /var/lib/postgresql/data
+      - type: bind
+        source: ./schema/v1schema.sql
+        target: /docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - target: 5432
+        published: 5432
+        protocol: tcp
+        mode: host
+
+  api-installer:
     image: node:18.10-alpine
-    working_dir: /mustachebash
-    command: npm i
+    working_dir: /workspace
+    command: sh -c "rm -f /var/tmp/api-init/complete && rm -rf /workspace/dist && npm --no-update-notifier i && touch /var/tmp/api-init/complete"
     environment:
         NODE_ENV: development
     volumes:
-        - type: bind
-          source: ./api
-          target: /mustachebash
-        - type: volume
-          source: node_modules
-          target: /mustachebash/node_modules
+      - type: bind
+        source: ./api
+        target: /workspace
+      - type: volume
+        source: api_node_modules
+        target: /workspace/node_modules
+      - type: volume
+        source: api_init
+        target: /var/tmp/api-init
   api:
     depends_on:
-      - installer
+      - api-installer
       - nginx
       - rethinkdb
+      # - postgres
     image: node:18.10-alpine
-    working_dir: /mustachebash
+    working_dir: /workspace
     tty: true
     volumes:
       - type: bind
         source: ./api
-        target: /mustachebash
+        target: /workspace
       - type: bind
         read_only: true
         source: ./await.sh
-        target: /etc/await.sh
+        target: /scripts/await.sh
       - type: volume
-        source: node_modules
-        target: /mustachebash/node_modules
-    command: sh -c "/etc/await.sh node_modules/.bin/nodemon npm run debug"
+        source: api_node_modules
+        target: /workspace/node_modules
+      - type: volume
+        source: api_init
+        target: /var/tmp/api-init
+    command: /scripts/await.sh /var/tmp/api-init/complete /scripts/await.sh node_modules/.bin/nodemon npm run debug
     environment:
       - NODE_ENV=development
       - DB_HOST=rethinkdb
       - DB_PORT=28015
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
       - JWT_SECRET
       - JWT_TRANSACTION_SECRET
       - JWT_TICKET_SECRET
