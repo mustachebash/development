@@ -1,4 +1,6 @@
 /data
+/postgres-data/pgdata
+node_modules/
 server.crt
 server.key
 server.csr

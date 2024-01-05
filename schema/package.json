@@ -1,0 +1,8 @@
+{
+	"type": "module",
+  "dependencies": {
+    "postgres": "^3.4.3",
+    "rethinkdb": "^2.4.2",
+    "uuid": "^9.0.1"
+  }
+}
