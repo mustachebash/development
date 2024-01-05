@@ -70,7 +70,7 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - JWT_SECRET
+      - JWT_SECRET=development
       - JWT_TRANSACTION_SECRET
       - JWT_TICKET_SECRET
       - MAILGUN_DOMAIN
