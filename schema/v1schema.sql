@@ -11,9 +11,9 @@ CREATE TABLE users (
 	role user_role NOT NULL,
 	authority user_authority NOT NULL,
 	status user_status DEFAULT 'active',
-	created TIMESTAMP DEFAULT NOW(),
-	updated TIMESTAMP DEFAULT NOW(),
-	meta JSONB
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated TIMESTAMP NOT NULL DEFAULT NOW(),
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 CREATE INDEX ON users (username);
 
@@ -24,16 +24,16 @@ CREATE TABLE events (
 	date TIMESTAMP NOT NULL,
 	name VARCHAR(256),
 	opening_sales TIMESTAMP DEFAULT NOW(),
-	sales_enabled BOOL NOT NULL,
+	sales_enabled BOOL NOT NULL DEFAULT FALSE,
 	max_capacity INT,
 	alcohol_revenue NUMERIC,
 	budget NUMERIC,
 	food_revenue NUMERIC,
 	status event_status NOT NULL,
-	created TIMESTAMP DEFAULT NOW(),
-	updated TIMESTAMP DEFAULT NOW(),
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_by uuid,
-	meta JSONB,
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
 
 	FOREIGN KEY (updated_by) REFERENCES users (id)
 );
@@ -46,8 +46,8 @@ CREATE TABLE events (
 -- 	settings JSONB,
 -- 	status site_status DEFAULT 'active',
 -- 	current_event_id uuid,
--- 	created TIMESTAMP DEFAULT NOW(),
--- 	updated TIMESTAMP DEFAULT NOW(),
+-- 	created TIMESTAMP NOT NULL DEFAULT NOW(),
+-- 	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 -- 	updated_by uuid,
 
 -- 	FOREIGN KEY (current_event_id) REFERENCES events (id),
@@ -61,10 +61,10 @@ CREATE TABLE customers (
 	email VARCHAR(256) UNIQUE NOT NULL,
 	first_name VARCHAR(128) NOT NULL,
 	last_name VARCHAR(128) NOT NULL,
-	created TIMESTAMP DEFAULT NOW(),
-	updated TIMESTAMP DEFAULT NOW(),
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_by uuid,
-	meta JSONB
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 CREATE INDEX ON customers (email);
 CREATE INDEX ON customers (last_name);
@@ -72,7 +72,7 @@ CREATE INDEX ON customers (last_name);
 
 CREATE TYPE product_status AS ENUM ('active', 'archived', 'inactive');
 CREATE TYPE product_type AS ENUM ('ticket', 'donation', 'fee', 'accomodation');
-CREATE TYPE admission_tier AS ENUM ('general', 'vip', 'sponsor');
+CREATE TYPE admission_tier AS ENUM ('general', 'vip', 'sponsor', 'stachepass');
 CREATE TABLE products (
 	id uuid PRIMARY KEY NOT NULL,
 	status product_status DEFAULT 'inactive',
@@ -83,17 +83,21 @@ CREATE TABLE products (
 	price NUMERIC NOT NULL,
 	promo BOOL NOT NULL,
 	max_quantity INT,
-	created TIMESTAMP DEFAULT NOW(),
-	updated TIMESTAMP DEFAULT NOW(),
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_by uuid,
 	event_id uuid,
-	meta JSONB,
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
 
 	FOREIGN KEY (updated_by) REFERENCES users (id),
 	FOREIGN KEY (event_id) REFERENCES events (id),
 
 	CONSTRAINT admission_tier_not_null_when_ticket_type CHECK (
         (type != 'ticket' AND admission_tier IS NULL) OR (type = 'ticket' AND admission_tier IS NOT NULL)
+    ),
+
+    CONSTRAINT event_id_not_null_when_ticket_or_accomodation_type CHECK (
+        (type IN ('donation', 'fee') AND event_id IS NULL) OR (type IN ('ticket', 'accomodation') AND event_id IS NOT NULL)
     )
 );
 CREATE INDEX ON products (event_id);
@@ -103,8 +107,8 @@ CREATE TYPE promo_status AS ENUM ('active', 'claimed', 'disabled');
 CREATE TYPE promo_type AS ENUM ('single-use', 'coupon');
 CREATE TABLE promos (
 	id uuid PRIMARY KEY NOT NULL,
-	created TIMESTAMP DEFAULT NOW(),
-	updated TIMESTAMP DEFAULT NOW(),
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
+	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 	created_by uuid NOT NULL,
 	updated_by uuid,
 	price NUMERIC,
@@ -114,7 +118,7 @@ CREATE TABLE promos (
 	recipient_name VARCHAR(256),
 	status promo_status DEFAULT 'active',
 	type promo_type NOT NULL,
-	meta JSONB,
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
 
 	FOREIGN KEY (created_by) REFERENCES users (id),
 	FOREIGN KEY (updated_by) REFERENCES users (id),
@@ -128,13 +132,13 @@ CREATE INDEX ON promos (product_id);
 CREATE TYPE order_status AS ENUM ('complete', 'canceled', 'transferred');
 CREATE TABLE orders (
 	id uuid PRIMARY KEY NOT NULL,
-	created TIMESTAMP DEFAULT NOW(),
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
 	customer_id uuid NOT NULL,
 	promo_id uuid,
 	amount NUMERIC,
 	parent_order_id uuid,
 	status order_status NOT NULL,
-	meta JSONB,
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
 
 	FOREIGN KEY (parent_order_id) REFERENCES orders (id),
 	FOREIGN KEY (customer_id) REFERENCES customers (id),
@@ -162,7 +166,7 @@ CREATE TYPE transaction_type AS ENUM ('sale', 'refund', 'void');
 CREATE TYPE transaction_processor AS ENUM ('braintree', 'paypal');
 CREATE TABLE transactions (
 	id uuid PRIMARY KEY NOT NULL,
-	created TIMESTAMP DEFAULT NOW(),
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
 	amount NUMERIC,
 	type transaction_type NOT NULL,
 	order_id uuid NOT NULL,
@@ -170,7 +174,7 @@ CREATE TABLE transactions (
 	processor_transaction_id VARCHAR(128),
 	processor transaction_processor,
 	parent_transaction_id uuid,
-	meta JSONB,
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
 
 	FOREIGN KEY (parent_transaction_id) REFERENCES transactions (id),
 	FOREIGN KEY (order_id) REFERENCES orders (id)
@@ -186,7 +190,7 @@ CREATE TYPE guest_created_reason AS ENUM ('purchase', 'comp', 'transfer');
 CREATE TABLE guests (
 	id uuid PRIMARY KEY NOT NULL,
 	check_in_time TIMESTAMP,
-	created TIMESTAMP DEFAULT NOW(),
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
 	created_by uuid,
 	created_reason guest_created_reason NOT NULL,
 	event_id uuid NOT NULL,
@@ -195,28 +199,35 @@ CREATE TABLE guests (
 	status guest_status DEFAULT 'active',
 	admission_tier admission_tier NOT NULL,
 	order_id uuid,
-	updated TIMESTAMP DEFAULT NOW(),
+	ticket_seed VARCHAR(128) NOT NULL,
+	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_by uuid,
-	meta JSONB,
+	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
 
 	FOREIGN KEY (event_id) REFERENCES events (id),
 	FOREIGN KEY (created_by) REFERENCES users (id),
 	FOREIGN KEY (updated_by) REFERENCES users (id),
-	FOREIGN KEY (order_id) REFERENCES orders (id)
+	FOREIGN KEY (order_id) REFERENCES orders (id),
+
+	CONSTRAINT order_id_not_null_when_purchase_reason CHECK (
+        (created_reason = 'comp' AND order_id IS NULL) OR (created_reason IN ('purchase', 'transfer') AND order_id IS NOT NULL)
+    )
 );
 CREATE INDEX ON guests (event_id);
 CREATE INDEX ON guests (order_id);
 CREATE INDEX ON guests (last_name);
+COMMENT ON COLUMN guests.ticket_seed IS 'The random string used to generate the QR code for this guests ticket. Resetting this seed will disable any existing QR codes.';
 
 
-CREATE TYPE ticket_status AS ENUM ('active', 'consumed', 'disabled');
-CREATE TABLE tickets (
-	id uuid PRIMARY KEY NOT NULL,
-	status ticket_status DEFAULT 'active',
-	guest_id uuid NOT NULL,
-	created TIMESTAMP DEFAULT NOW(),
-	updated TIMESTAMP DEFAULT NOW(),
+-- This is probably not needed anymore either
+-- CREATE TYPE ticket_status AS ENUM ('active', 'consumed', 'disabled');
+-- CREATE TABLE tickets (
+-- 	id uuid PRIMARY KEY NOT NULL,
+-- 	status ticket_status DEFAULT 'active',
+-- 	guest_id uuid NOT NULL,
+-- 	created TIMESTAMP NOT NULL DEFAULT NOW(),
+-- 	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 
-	FOREIGN KEY (guest_id) REFERENCES guests (id)
-);
-CREATE INDEX ON tickets (guest_id);
+-- 	FOREIGN KEY (guest_id) REFERENCES guests (id)
+-- );
+-- CREATE INDEX ON tickets (guest_id);

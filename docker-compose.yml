@@ -6,7 +6,7 @@ volumes:
 
 services:
   postgres:
-    image: postgres:13.1-alpine
+    image: postgres:15.5-alpine3.18
     environment:
       POSTGRES_PASSWORD: postgres
       PGDATA: "/var/lib/postgresql/data/pgdata"
@@ -24,7 +24,7 @@ services:
         mode: host
 
   api-installer:
-    image: node:18.10-alpine
+    image: node:20.10-alpine3.19
     working_dir: /workspace
     command: sh -c "rm -f /var/tmp/api-init/complete && rm -rf /workspace/dist && npm --no-update-notifier i && touch /var/tmp/api-init/complete"
     environment:
@@ -45,7 +45,7 @@ services:
       - nginx
       - rethinkdb
       # - postgres
-    image: node:18.10-alpine
+    image: node:20.10-alpine3.19
     working_dir: /workspace
     tty: true
     volumes:
@@ -70,9 +70,10 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - GOOGLE_IDENITY_CLIENT_ID="198337388430-lc8hopgbqp8d1s4eajfqjhli3g5kbk2r.apps.googleusercontent.com"
       - JWT_SECRET=development
-      - JWT_TRANSACTION_SECRET
-      - JWT_TICKET_SECRET
+      - JWT_TRANSACTION_SECRET=development
+      - JWT_TICKET_SECRET=development
       - MAILGUN_DOMAIN
       - MAILGUN_API_KEY
       - MAILCHIMP_DOMAIN

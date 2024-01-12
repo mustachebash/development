@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import r from 'rethinkdb';
 import postgres from 'postgres';
 import { v4 as uuidV4 } from 'uuid';
@@ -21,6 +22,12 @@ const usernameMap = {
 	'ty.dupraw': '11b36568-bf25-482e-b4ae-0935041623cc'
 };
 
+const usernameEmailMap = {
+	'dustin.oreilly': 'doreilly@mustachebash.com',
+	'joe.furfaro': 'joe@mustachebash.com',
+	'jeff.walsh': 'jeff@mustachebash.com'
+};
+
 const conn = await r.connect({
 	db: 'mustachebash'
 });
@@ -32,7 +39,7 @@ async function migrateUsers() {
 			.filter(u => usernameMap[u.id])
 			.map(u => ({
 				id: usernameMap[u.id], // uuid PRIMARY KEY NOT NULL,
-				username: u.id, // VARCHAR(128) UNIQUE NOT NULL,
+				username: usernameEmailMap[u.id] || u.id, // VARCHAR(128) UNIQUE NOT NULL,
 				sub_claim: null, // VARCHAR(128) UNIQUE,
 				display_name: u.displayName, // VARCHAR(128) NOT NULL,
 				password: null, // VARCHAR(256) NOT NULL,
@@ -62,15 +69,15 @@ async function migrateEvents() {
 				date: e.date.toISOString(), // TIMESTAMP NOT NULL,
 				name: e.name, // VARCHAR(256),
 				opening_sales: e.openingSales.toISOString() || null, // TIMESTAMP DEFAULT NOW(),
-				sales_enabled: false, // BOOL NOT NULL,
+				sales_enabled: false, // BOOL NOT NULL DEFAULT FALSE,
 				max_capacity: e.maxCapacity || null, // INT,
 				alcohol_revenue: e.alcoholRevenue || null, // NUMERIC,
 				budget: e.budget || null, // NUMERIC,
 				food_revenue: e.foodRevenue || null, // NUMERIC,
 				status: e.status, // event_status,
-				// Created does not exist yet
-				created: e.updated?.toISOString() || null, // TIMESTAMP DEFAULT NOW(),
-				updated: e.updated?.toISOString() || null, // TIMESTAMP DEFAULT NOW(),
+				// Created does not exist yet, so we'll leave both blank
+				// created: e.updated?.toISOString(), // TIMESTAMP NOT NULL DEFAULT NOW(),
+				// updated: e.updated?.toISOString(), // TIMESTAMP NOT NULL DEFAULT NOW(),
 				// We're dropping this information for now
 				updated_by: null, // uuid,
 				meta: {}
@@ -386,6 +393,7 @@ async function migrateGuests() {
 				last_name: g.lastName, //  VARCHAR(128) NOT NULL,
 				status: g.checkedIn ? 'checked_in' : g.status, // guest_status DEFAULT 'active',
 				order_id: g.transactionId !== 'COMPED' ? g.transactionId : null, // uuid,
+				ticket_seed: crypto.randomBytes(12).toString('hex'), // VARCHAR(128) NOT NULL,
 				updated: g.updated ?? g.created, // TIMESTAMP DEFAULT NOW(),
 				updated_by: usernameMap[g.updatedBy] ?? null, // uuid,
 				admission_tier: g.vip ? 'vip' : 'general', // admission_tier,
@@ -416,32 +424,32 @@ async function migrateGuests() {
 // "updated" ,
 // "updatedBy"
 
-async function migrateTickets() {
-	try {
-		const tickets = (
-			await r.table('tickets')
-				.run(conn).then(cursor => cursor.toArray())
-		)
-			.map(t => ({
-				id: t.id, //uuid PRIMARY KEY NOT NULL,
-				status: t.status, //ticket_status DEFAULT 'active',
-				guest_id: t.guestId, //uuid NOT NULL,
-				created: t.created, //TIMESTAMP DEFAULT NOW(),
-				updated: t.updated || t.created //TIMESTAMP DEFAULT NOW(),
-			}));
+// async function migrateTickets() {
+// 	try {
+// 		const tickets = (
+// 			await r.table('tickets')
+// 				.run(conn).then(cursor => cursor.toArray())
+// 		)
+// 			.map(t => ({
+// 				id: t.id, //uuid PRIMARY KEY NOT NULL,
+// 				status: t.status, //ticket_status DEFAULT 'active',
+// 				guest_id: t.guestId, //uuid NOT NULL,
+// 				created: t.created, //TIMESTAMP DEFAULT NOW(),
+// 				updated: t.updated || t.created //TIMESTAMP DEFAULT NOW(),
+// 			}));
 
-		// insert 2000 at a time to prevent parameter errors
-		for(let i = 0; i < Math.ceil(tickets.length/2000); i++) {
-			await sql`
-				INSERT INTO tickets ${sql(tickets.slice(i*2000, (i + 1)*2000))}
-			`;
-		}
+// 		// insert 2000 at a time to prevent parameter errors
+// 		for(let i = 0; i < Math.ceil(tickets.length/2000); i++) {
+// 			await sql`
+// 				INSERT INTO tickets ${sql(tickets.slice(i*2000, (i + 1)*2000))}
+// 			`;
+// 		}
 
-		console.log('Tickets Complete!', tickets.length);
-	} catch(e) {
-		console.error(e);
-	}
-}
+// 		console.log('Tickets Complete!', tickets.length);
+// 	} catch(e) {
+// 		console.error(e);
+// 	}
+// }
 
 
 await migrateUsers();
@@ -452,7 +460,7 @@ await migratePromos();
 await migrateTheRestOfTheFuckingOwl();
 await migrateTransfers();
 await migrateGuests();
-await migrateTickets();
+// await migrateTickets();
 
 conn.close();
 sql.end();
