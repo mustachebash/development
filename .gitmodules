@@ -7,6 +7,3 @@
 [submodule "admin"]
 	path = admin
 	url = git@github.com:mustachebash/admin.git
-[submodule "nginx"]
-	path = nginx
-	url = git@github.com:mustachebash/nginx.git
