@@ -43,8 +43,7 @@ services:
     depends_on:
       - api-installer
       - nginx
-      - rethinkdb
-      # - postgres
+      - postgres
     image: node:20.10-alpine3.19
     working_dir: /workspace
     tty: true
@@ -63,27 +62,29 @@ services:
         source: api_init
         target: /var/tmp/api-init
     command: /scripts/await.sh /var/tmp/api-init/complete /scripts/await.sh node_modules/.bin/nodemon npm run debug
+    env_file:
+      - ./secrets/.env
     environment:
       - NODE_ENV=development
-      - DB_HOST=rethinkdb
-      - DB_PORT=28015
       - POSTGRES_HOST=postgres
-      - POSTGRES_USER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=postgres
       - GOOGLE_IDENITY_CLIENT_ID="198337388430-lc8hopgbqp8d1s4eajfqjhli3g5kbk2r.apps.googleusercontent.com"
       - JWT_SECRET=development
-      - JWT_TRANSACTION_SECRET=development
+      - JWT_ORDER_SECRET=development
       - JWT_TICKET_SECRET=development
-      - MAILGUN_DOMAIN
+      - MAILGUN_DOMAIN=sales.mustachebash.com
       - MAILGUN_API_KEY
-      - MAILCHIMP_DOMAIN
+      - MAILCHIMP_DOMAIN=us10.api.mailchimp.com
       - MAILCHIMP_API_KEY
+      - BRAINTREE_ENV=Sandbox
       - BRAINTREE_MERCHANT_ID
       - BRAINTREE_PUBLIC_KEY
       - BRAINTREE_PRIVATE_KEY
-    ports:
-      - "9229:9229"
 
+  # This is just for https
   nginx:
     image: nginx:1.23.3-alpine
     ports:
@@ -93,10 +94,3 @@ services:
       - ./rootCA.pem:/etc/nginx/certs/rootCA.pem
       - ./server.key:/etc/nginx/certs/server.key
       - ./server.crt:/etc/nginx/certs/server.crt
-  rethinkdb:
-    image: rethinkdb:2.4.2
-    ports:
-      - "8080:8080"
-      - "28015:28015"
-    volumes:
-      - ./data:/data

@@ -1,6 +1,8 @@
 /data
 /postgres-data/pgdata
 node_modules/
+/secrets/*
+!/secrets/.gitkeep
 server.crt
 server.key
 server.csr
