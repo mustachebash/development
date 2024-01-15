@@ -25,7 +25,8 @@ const usernameMap = {
 const usernameEmailMap = {
 	'dustin.oreilly': 'doreilly@mustachebash.com',
 	'joe.furfaro': 'joe@mustachebash.com',
-	'jeff.walsh': 'jeff@mustachebash.com'
+	'jeff.walsh': 'jeff@mustachebash.com',
+	'mike.misselwitz': 'mike@mustachebash.com'
 };
 
 const conn = await r.connect({
