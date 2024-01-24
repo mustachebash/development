@@ -38,24 +38,6 @@ CREATE TABLE events (
 	FOREIGN KEY (updated_by) REFERENCES users (id)
 );
 
--- Probably don't need these anymore?
--- CREATE TYPE site_status AS ENUM ('active', 'archived');
--- CREATE TABLE sites (
--- 	id uuid PRIMARY KEY NOT NULL,
--- 	domain VARCHAR(128) NOT NULL,
--- 	settings JSONB,
--- 	status site_status DEFAULT 'active',
--- 	current_event_id uuid,
--- 	created TIMESTAMP NOT NULL DEFAULT NOW(),
--- 	updated TIMESTAMP NOT NULL DEFAULT NOW(),
--- 	updated_by uuid,
-
--- 	FOREIGN KEY (current_event_id) REFERENCES events (id),
--- 	FOREIGN KEY (updated_by) REFERENCES users (id)
--- );
--- CREATE INDEX ON sites (domain);
-
-
 CREATE TABLE customers (
 	id uuid PRIMARY KEY NOT NULL,
 	email VARCHAR(256) UNIQUE NOT NULL,
@@ -115,6 +97,7 @@ CREATE TABLE promos (
 	percent_discount NUMERIC,
 	flat_discount NUMERIC,
 	product_id uuid NOT NULL,
+	product_quantity INT,
 	recipient_name VARCHAR(256),
 	status promo_status DEFAULT 'active',
 	type promo_type NOT NULL,
@@ -124,9 +107,13 @@ CREATE TABLE promos (
 	FOREIGN KEY (updated_by) REFERENCES users (id),
 	FOREIGN KEY (product_id) REFERENCES products (id),
 
-	CONSTRAINT chk_only_one_is_not_null CHECK (num_nonnulls(price, percent_discount, flat_discount) = 1)
+	CONSTRAINT chk_only_one_is_not_null CHECK (num_nonnulls(price, percent_discount, flat_discount) = 1),
+	CONSTRAINT product_quantity_not_null_when_single_use CHECK (
+        (type != 'single-use' AND product_quantity IS NULL) OR (type = 'single-use' AND product_quantity IS NOT NULL)
+    )
 );
 CREATE INDEX ON promos (product_id);
+COMMENT ON COLUMN promos.product_quantity IS 'If a single-use promo, how many of the product_id to include in the order';
 
 
 CREATE TYPE order_status AS ENUM ('complete', 'canceled', 'transferred');
@@ -217,17 +204,3 @@ CREATE INDEX ON guests (event_id);
 CREATE INDEX ON guests (order_id);
 CREATE INDEX ON guests (last_name);
 COMMENT ON COLUMN guests.ticket_seed IS 'The random string used to generate the QR code for this guests ticket. Resetting this seed will disable any existing QR codes.';
-
-
--- This is probably not needed anymore either
--- CREATE TYPE ticket_status AS ENUM ('active', 'consumed', 'disabled');
--- CREATE TABLE tickets (
--- 	id uuid PRIMARY KEY NOT NULL,
--- 	status ticket_status DEFAULT 'active',
--- 	guest_id uuid NOT NULL,
--- 	created TIMESTAMP NOT NULL DEFAULT NOW(),
--- 	updated TIMESTAMP NOT NULL DEFAULT NOW(),
-
--- 	FOREIGN KEY (guest_id) REFERENCES guests (id)
--- );
--- CREATE INDEX ON tickets (guest_id);

@@ -9,6 +9,7 @@ services:
     image: postgres:15.5-alpine3.18
     environment:
       POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mustachebash
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - type: bind
@@ -70,7 +71,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DATABASE=postgres
+      - POSTGRES_DATABASE=mustachebash
       - GOOGLE_IDENITY_CLIENT_ID="198337388430-lc8hopgbqp8d1s4eajfqjhli3g5kbk2r.apps.googleusercontent.com"
       - JWT_SECRET=development
       - JWT_ORDER_SECRET=development
