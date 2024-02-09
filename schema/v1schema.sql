@@ -1,5 +1,5 @@
 CREATE TYPE user_authority AS ENUM ('google', 'email');
-CREATE TYPE user_role AS ENUM ('root', 'admin', 'read', 'doorman');
+CREATE TYPE user_role AS ENUM ('root', 'admin', 'write', 'read', 'doorman');
 CREATE TYPE user_status AS ENUM ('active', 'archived');
 CREATE TABLE users (
 	id uuid PRIMARY KEY NOT NULL,
