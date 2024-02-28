@@ -1,7 +1,6 @@
-version: '3.7'
+version: '3.8'
 
 volumes:
-    api_init:
     api_node_modules:
 
 services:
@@ -27,7 +26,7 @@ services:
   api-installer:
     image: node:20.10-alpine3.19
     working_dir: /workspace
-    command: sh -c "rm -f /var/tmp/api-init/complete && rm -rf /workspace/dist && npm --no-update-notifier i && touch /var/tmp/api-init/complete"
+    command: sh -c "rm -rf /workspace/dist && npm --no-update-notifier i"
     environment:
         NODE_ENV: development
     volumes:
@@ -37,14 +36,15 @@ services:
       - type: volume
         source: api_node_modules
         target: /workspace/node_modules
-      - type: volume
-        source: api_init
-        target: /var/tmp/api-init
+
   api:
     depends_on:
-      - api-installer
-      - nginx
-      - postgres
+      nginx:
+        condition: service_started
+      postgres:
+        condition: service_started
+      api-installer:
+        condition: service_completed_successfully
     image: node:20.10-alpine3.19
     working_dir: /workspace
     tty: true
@@ -52,17 +52,10 @@ services:
       - type: bind
         source: ./api
         target: /workspace
-      - type: bind
-        read_only: true
-        source: ./await.sh
-        target: /scripts/await.sh
       - type: volume
         source: api_node_modules
         target: /workspace/node_modules
-      - type: volume
-        source: api_init
-        target: /var/tmp/api-init
-    command: /scripts/await.sh /var/tmp/api-init/complete /scripts/await.sh node_modules/.bin/nodemon npm run debug
+    command: npm run dev
     env_file:
       - ./secrets/.env
     environment:
