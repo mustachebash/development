@@ -1,3 +1,8 @@
+-- For random ticket_seed
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- For UUID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TYPE user_authority AS ENUM ('google', 'email');
 CREATE TYPE user_role AS ENUM ('root', 'admin', 'write', 'read', 'doorman');
 CREATE TYPE user_status AS ENUM ('active', 'archived');
@@ -16,6 +21,19 @@ CREATE TABLE users (
 	meta JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 CREATE INDEX ON users (username);
+
+
+CREATE TABLE refresh_tokens (
+	id uuid PRIMARY KEY NOT NULL,
+	user_id uuid NOT NULL,
+	user_agent TEXT NOT NULL,
+	ip VARCHAR(128) NOT NULL,
+	created TIMESTAMP NOT NULL DEFAULT NOW(),
+	last_accessed TIMESTAMP NOT NULL DEFAULT NOW(),
+
+	FOREIGN KEY (user_id) REFERENCES users (id)
+);
+CREATE INDEX ON refresh_tokens (user_id);
 
 
 CREATE TYPE event_status AS ENUM ('active', 'archived');
@@ -53,7 +71,7 @@ CREATE INDEX ON customers (last_name);
 
 
 CREATE TYPE product_status AS ENUM ('active', 'archived', 'inactive');
-CREATE TYPE product_type AS ENUM ('ticket', 'donation', 'fee', 'accomodation');
+CREATE TYPE product_type AS ENUM ('ticket', 'donation', 'fee', 'accomodation', 'upgrade', 'bundle-ticket');
 CREATE TYPE admission_tier AS ENUM ('general', 'vip', 'sponsor', 'stachepass');
 CREATE TABLE products (
 	id uuid PRIMARY KEY NOT NULL,
@@ -65,6 +83,7 @@ CREATE TABLE products (
 	price NUMERIC NOT NULL,
 	promo BOOL NOT NULL,
 	max_quantity INT,
+	target_product_id uuid,
 	created TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_by uuid,
@@ -73,13 +92,35 @@ CREATE TABLE products (
 
 	FOREIGN KEY (updated_by) REFERENCES users (id),
 	FOREIGN KEY (event_id) REFERENCES events (id),
+	FOREIGN KEY (target_product_id) REFERENCES products (id),
 
 	CONSTRAINT admission_tier_not_null_when_ticket_type CHECK (
-        (type != 'ticket' AND admission_tier IS NULL) OR (type = 'ticket' AND admission_tier IS NOT NULL)
+        (type != 'ticket') OR (type = 'ticket' AND admission_tier IS NOT NULL)
+    ),
+
+    CONSTRAINT admission_tier_not_null_when_upgrade_type CHECK (
+        (type != 'upgrade') OR (type = 'upgrade' AND admission_tier IS NOT NULL)
+    ),
+
+    CONSTRAINT admission_tier_not_null_when_bundle_ticket_type CHECK (
+        (type != 'bundle-ticket') OR (type = 'bundle-ticket' AND admission_tier IS NOT NULL)
+    ),
+
+    CONSTRAINT target_product_id_not_null_when_upgrade_type CHECK (
+        (type != 'upgrade') OR (type = 'upgrade' AND target_product_id IS NOT NULL)
+    ),
+
+    CONSTRAINT target_product_id_not_null_when_bundle_ticket_type CHECK (
+        (type != 'bundle-ticket') OR (type = 'bundle-ticket' AND target_product_id IS NOT NULL)
+    ),
+
+    -- Upgrades target an existing ticket, so an event id is not needed
+    CONSTRAINT event_id_not_null_when_bundle_ticket_type CHECK (
+        (type != 'bundle-ticket') OR (type = 'bundle-ticket' AND event_id IS NOT NULL)
     ),
 
     CONSTRAINT event_id_not_null_when_ticket_or_accomodation_type CHECK (
-        (type IN ('donation', 'fee') AND event_id IS NULL) OR (type IN ('ticket', 'accomodation') AND event_id IS NOT NULL)
+        (type NOT IN ('ticket', 'accomodation')) OR (type IN ('ticket', 'accomodation') AND event_id IS NOT NULL)
     )
 );
 CREATE INDEX ON products (event_id);
@@ -186,7 +227,7 @@ CREATE TABLE guests (
 	status guest_status DEFAULT 'active',
 	admission_tier admission_tier NOT NULL,
 	order_id uuid,
-	ticket_seed VARCHAR(128) NOT NULL,
+	ticket_seed VARCHAR(128) NOT NULL UNIQUE,
 	updated TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_by uuid,
 	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -203,4 +244,6 @@ CREATE TABLE guests (
 CREATE INDEX ON guests (event_id);
 CREATE INDEX ON guests (order_id);
 CREATE INDEX ON guests (last_name);
+-- ticket_seed index is for lookup use when the value is used as a revokable plaintext identifier as opposed to cryptographic seed
+CREATE INDEX ON guests (ticket_seed);
 COMMENT ON COLUMN guests.ticket_seed IS 'The random string used to generate the QR code for this guests ticket. Resetting this seed will disable any existing QR codes.';
