@@ -52,6 +52,7 @@ services:
       - ./secrets/.env
     environment:
       - NODE_ENV=development
+      - NODE_OPTIONS="--no-deprecation"
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USERNAME=postgres
@@ -70,11 +71,69 @@ services:
       - BRAINTREE_PUBLIC_KEY
       - BRAINTREE_PRIVATE_KEY
 
+  web-installer:
+    build:
+      context: mustachebash.com
+      target: build-deps
+    image: mustachebash-web:dev
+    pull_policy: never
+    command: sh -c "rm -rf /build/dist /build/.astro"
+    environment:
+        NODE_ENV: development
+    volumes:
+      - type: bind
+        source: ./mustachebash.com
+        target: /build
+      - type: volume
+        target: /build/node_modules
+
+  web:
+    depends_on:
+      nginx:
+        condition: service_started
+      web-installer:
+        condition: service_completed_successfully
+    image: mustachebash-web:dev
+    pull_policy: never
+    tty: true
+    volumes_from:
+      - web-installer
+    command: npm start
+
+  admin-installer:
+    build:
+      context: admin
+      target: build-deps
+    image: mustachebash-admin:dev
+    pull_policy: never
+    command: sh -c "rm -rf /build/dist"
+    environment:
+        NODE_ENV: development
+    volumes:
+      - type: bind
+        source: ./admin
+        target: /build
+      - type: volume
+        target: /build/node_modules
+
+  admin:
+    depends_on:
+      nginx:
+        condition: service_started
+      admin-installer:
+        condition: service_completed_successfully
+    image: mustachebash-admin:dev
+    pull_policy: never
+    tty: true
+    volumes_from:
+      - admin-installer
+    command: npm start
+
   # This is just for https
   nginx:
     image: nginx:1.27.3-alpine
     ports:
-      - "8888:8080"
+      - "443:443"
     volumes:
       - type: bind
         read_only: true
