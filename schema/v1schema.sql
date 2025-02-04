@@ -139,6 +139,8 @@ CREATE TABLE promos (
 	flat_discount NUMERIC,
 	product_id uuid NOT NULL,
 	product_quantity INT,
+	max_uses INT,
+	expiration TIMESTAMP,
 	recipient_name VARCHAR(256),
 	status promo_status DEFAULT 'active',
 	type promo_type NOT NULL,
