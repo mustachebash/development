@@ -34,7 +34,7 @@ done
 mkcert -install
 
 # Generate wildcard cert for local development
-mkcert -cert-file secrets/localhost-cert.pem -key-file secrets/localhost-key.pem "localhost" "*.local.mrstache.io"
+mkcert -cert-file secrets/localhost-cert.pem -key-file secrets/localhost-key.pem "localhost" "*.mustachebash.localhost" "mustachebash.localhost" "admin-mustachebash.localhost" "api-mustachebash.localhost" "*.local.mrstache.io"
 
 # Display ending message.
 echo '
