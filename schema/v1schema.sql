@@ -142,6 +142,7 @@ CREATE TABLE promos (
 	max_uses INT,
 	expiration TIMESTAMP,
 	recipient_name VARCHAR(256),
+	recipient_email VARCHAR(256),
 	status promo_status DEFAULT 'active',
 	type promo_type NOT NULL,
 	meta JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -159,7 +160,7 @@ CREATE INDEX ON promos (product_id);
 COMMENT ON COLUMN promos.product_quantity IS 'If a single-use promo, how many of the product_id to include in the order';
 
 
-CREATE TYPE order_status AS ENUM ('complete', 'canceled', 'transferred');
+CREATE TYPE order_status AS ENUM ('complete', 'canceled', 'transferred', 'comped');
 CREATE TABLE orders (
 	id uuid PRIMARY KEY NOT NULL,
 	created TIMESTAMP NOT NULL DEFAULT NOW(),
