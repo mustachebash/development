@@ -160,7 +160,7 @@ CREATE INDEX ON promos (product_id);
 COMMENT ON COLUMN promos.product_quantity IS 'If a single-use promo, how many of the product_id to include in the order';
 
 
-CREATE TYPE order_status AS ENUM ('complete', 'canceled', 'transferred', 'comped');
+CREATE TYPE order_status AS ENUM ('complete', 'canceled', 'transferred');
 CREATE TABLE orders (
 	id uuid PRIMARY KEY NOT NULL,
 	created TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -241,7 +241,7 @@ CREATE TABLE guests (
 	FOREIGN KEY (order_id) REFERENCES orders (id),
 
 	CONSTRAINT order_id_not_null_when_purchase_reason CHECK (
-        (created_reason = 'comp' AND order_id IS NULL) OR (created_reason IN ('purchase', 'transfer') AND order_id IS NOT NULL)
+        (created_reason = 'comp') OR (created_reason IN ('purchase', 'transfer') AND order_id IS NOT NULL)
     )
 );
 CREATE INDEX ON guests (event_id);
