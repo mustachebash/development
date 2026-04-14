@@ -83,6 +83,8 @@ CREATE TABLE products (
 	price NUMERIC NOT NULL,
 	promo BOOL NOT NULL,
 	max_quantity INT,
+	available_from TIMESTAMP,
+	available_until TIMESTAMP,
 	target_product_id uuid,
 	created TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -124,6 +126,8 @@ CREATE TABLE products (
     )
 );
 CREATE INDEX ON products (event_id);
+CREATE INDEX ON products (available_from);
+CREATE INDEX ON products (available_until);
 
 
 CREATE TYPE promo_status AS ENUM ('active', 'claimed', 'disabled');
