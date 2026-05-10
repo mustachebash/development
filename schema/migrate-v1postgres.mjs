@@ -156,6 +156,8 @@ async function migrateProducts() {
 				name: p.name, // VARCHAR(128) NOT NULL,
 				price: p.price, // NUMERIC NOT NULL,
 				promo: Boolean(p.promo), // BOOL,
+				available_from: p.availableFrom ? new Date(p.availableFrom).toISOString() : null, // TIMESTAMP,
+				available_until: p.availableUntil ? new Date(p.availableUntil).toISOString() : null, // TIMESTAMP,
 				created: p.created, // TIMESTAMP DEFAULT NOW(),
 				// Defaulting to created for migration only
 				updated: p.created, // TIMESTAMP DEFAULT NOW(),
